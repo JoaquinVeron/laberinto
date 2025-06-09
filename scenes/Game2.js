@@ -156,7 +156,7 @@ export default class Game2 extends Phaser.Scene {
     star.disableBody(true, true);
     this.score += 10;
     this.scoreText.setText(`Score: ${this.score}`);
-    this.starsLeftText.setText(`Estrellas restantes: ${this.stars.countActive(true)}`);
+    this.starsLeftText.setText(`Almas restantes: ${this.stars.countActive(true)}`);
     if (this.stars.countActive(true) === 0) {
       this.physics.add.overlap(
         this.player,

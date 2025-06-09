@@ -140,7 +140,7 @@ update() {
       this.scene.restart();
     }
 
-    this.starsLeftText.setText(`Estrellas restantes: ${this.stars.countActive(true)}`);
+    this.starsLeftText.setText(`Almas restantes: ${this.stars.countActive(true)}`);
     this.starsLeftText.x = this.cameras.main.scrollX + 8;
     this.starsLeftText.y = this.cameras.main.scrollY + 40;
 }

@@ -1,20 +1,17 @@
-// URL to explain PHASER scene: https://rexrainbow.github.io/phaser3-rex-notes/docs/site/scene/
-
-export default class Game extends Phaser.Scene {
+export default class Game2 extends Phaser.Scene {
   constructor() {
-    super("game");
+    super("game2");
   }
 
   init() {
-    this.score = 0;
+    this.score = this.registry.get('score') || 0;
   }
 
   preload() {
-    this.load.tilemapTiledJSON("map", "public/assets/tilemap/map.json");
+    this.load.tilemapTiledJSON("map2", "public/assets/tilemap/map2.json");
     this.load.image("tileset", "public/assets/texture.png");
     this.load.image("star", "public/assets/star.png");
     this.load.image("salida", "public/assets/salida.png");
-
     this.load.spritesheet("dude", "public/assets/dude.png", {
       frameWidth: 32,
       frameHeight: 48,
@@ -22,22 +19,21 @@ export default class Game extends Phaser.Scene {
   }
 
   create() {
-    const map =this.make.tilemap({ key: "map" });
+    const map = this.make.tilemap({ key: "map2" });
+    console.log("map2 cargado:", map);
+    const tileset = map.addTilesetImage("tileset", "tileset");
 
-    const tileLayerNames = map.layers.map(l => l.name);
-    const objectLayerNames = map.objects.map(o => o.name);
+    const tileLayerNames = map.layers.map((l) => l.name);
+    const objectLayerNames = map.objects.map((o) => o.name);
 
-    const belowLayer = map.createLayer(tileLayerNames[0], map.addTilesetImage("tileset", "tileset"), 0, 0);
-    this.platformLayer = map.createLayer(tileLayerNames[1], map.addTilesetImage("tileset", "tileset"), 0, 0);
+    const belowLayer = map.createLayer(tileLayerNames[0], tileset, 0, 0);
+    this.platformLayer = map.createLayer(tileLayerNames[1], tileset, 0, 0);
     const objectsLayer = map.getObjectLayer(objectLayerNames[0]);
 
-    const spawnPoint = objectsLayer.objects.find(obj => obj.name === "player" || obj.name ==="dude" || obj.type === "player");
-    console.log("spawnPoint", spawnPoint);
-
-    const salida = objectsLayer.objects.find(obj => obj.name === "salida" || obj.name ==="salida" || obj.type === "salida");
-    console.log("salida", salida);
-
-    //Posible borrado
+    // Spawn del jugador
+    const spawnPoint = objectsLayer.objects.find(
+      (obj) => obj.name === "player" || obj.type === "player"
+    );
     const playerX = spawnPoint ? spawnPoint.x : 0;
     const playerY = spawnPoint ? spawnPoint.y : 0;
 
@@ -46,19 +42,18 @@ export default class Game extends Phaser.Scene {
     this.player.setBounce(0.2);
     this.player.setCollideWorldBounds(true);
 
+    // Animaciones
     this.anims.create({
       key: "left",
-      frames: [{ key: "dude", frame:0}],
+      frames: [{ key: "dude", frame: 0 }],
       frameRate: 10,
       repeat: -1,
     });
-
     this.anims.create({
       key: "turn",
       frames: [{ key: "dude", frame: 0 }],
       frameRate: 20,
     });
-
     this.anims.create({
       key: "right",
       frames: [{ key: "dude", frame: 0 }],
@@ -66,57 +61,69 @@ export default class Game extends Phaser.Scene {
       repeat: -1,
     });
 
+    // Controles
     this.cursors = this.input.keyboard.createCursorKeys();
     this.keyR = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.R);
 
+    // Colisiones
+    this.platformLayer.setCollisionByExclusion([-1]);
+    this.physics.add.collider(this.player, this.platformLayer);
+
+    // Estrellas
     this.stars = this.physics.add.group();
+    objectsLayer.objects.forEach((objData) => {
+      const { x = 0, y = 0, type } = objData;
+      if (type === "star") {
+        const star = this.stars.create(x, y, "star");
+        star.setGravityY(0);
+        star.setBounceY(Phaser.Math.FloatBetween(0.4, 0.8));
+        star.setCollideWorldBounds(true);
+      }
+    });
+    this.physics.add.collider(this.stars, this.platformLayer);
+    this.physics.add.collider(
+      this.player,
+      this.stars,
+      this.collectStar,
+      null,
+      this
+    );
 
-objectsLayer.objects.forEach((objData) => {
-  const { x = 0, y = 0, type } = objData;
-  if (type === "star") {
-    const star = this.stars.create(x, y, "star");
-    star.setGravityY(0);
-    star.setBounceY(Phaser.Math.FloatBetween(0.4, 0.8));
-    star.setCollideWorldBounds(true);
-  }
-});
-
-if (this.platformLayer) {
-  this.platformLayer.setCollisionByExclusion([-1]);
-  this.physics.add.collider(this.player, this.platformLayer);
-  this.physics.add.collider(this.stars, this.platformLayer);
-}
-
-    this.physics.add.collider(this.player, this.stars, this.collectStar, null, this);
-
-    this.scoreText = this.add.text(8, 0,`Score: ${this.score}`, {
+    // Texto de score
+    this.scoreText = this.add.text(8, 0, `Score: ${this.score}`, {
       fontFamily: "Bitstream Vera Sans Mono, monospace",
       fontbold: true,
       fontSize: "32px",
       fill: "#fff",
     });
 
+    // Texto de estrellas restantes
     this.starsLeftText = this.add.text(8, 40, `Almas restantes: ${this.stars.countActive(true)}`, {
       fontFamily: "Bitstream Vera Sans Mono, monospace",
       fontSize: "28px",
       fill: "#ff0",
     });
 
-    const salidaObj = objectsLayer.objects.find(obj => obj.name === "salida" || obj.type === "salida");
+    // Salida
+    const salidaObj = objectsLayer.objects.find(
+      (obj) => obj.name === "salida" || obj.type === "salida"
+    );
     if (salidaObj) {
       this.salida = this.physics.add.sprite(salidaObj.x, salidaObj.y, "salida");
       this.salida.setImmovable(true);
       this.salida.body.allowGravity = false;
-      this.salida.setDepth(1); // Profundidad baja
+      this.salida.setDepth(1);
     }
+    this.player.setDepth(2);
 
-    this.player.setDepth(2); // Profundidad mayor, siempre encima de la salida
-
+    // Ajustar cámara
     this.cameras.main.setBounds(0, 0, map.widthInPixels, map.heightInPixels);
     this.cameras.main.startFollow(this.player);
-}
 
-update() {
+    console.log("Capas de tiles en map2:", map.layers.map((l) => l.name));
+  }
+
+  update() {
     if (this.cursors.left.isDown) {
       this.player.setVelocityX(-160);
       this.player.anims.play("left", true);
@@ -135,31 +142,34 @@ update() {
     } else {
       this.player.setVelocityY(0);
     }
-    // Reiniciar solo cuando se presiona R una vez
+
     if (Phaser.Input.Keyboard.JustDown(this.keyR)) {
       this.scene.restart();
     }
 
-    this.starsLeftText.setText(`Estrellas restantes: ${this.stars.countActive(true)}`);
+    // Actualizar posición del texto de estrellas restantes si es necesario
     this.starsLeftText.x = this.cameras.main.scrollX + 8;
     this.starsLeftText.y = this.cameras.main.scrollY + 40;
-}
+  }
 
-collectStar(player, star) {
+  collectStar(player, star) {
     star.disableBody(true, true);
-
     this.score += 10;
     this.scoreText.setText(`Score: ${this.score}`);
-
-    // Si ya no quedan estrellas, ahora sí permite pasar por la salida
+    this.starsLeftText.setText(`Estrellas restantes: ${this.stars.countActive(true)}`);
     if (this.stars.countActive(true) === 0) {
-      this.physics.add.overlap(this.player, this.salida, this.llegarASalida, null, this);
-      // Opcional: muestra un mensaje o animación indicando que la salida está activa
+      this.physics.add.overlap(
+        this.player,
+        this.salida,
+        this.llegarASalida,
+        null,
+        this
+      );
     }
   }
 
   llegarASalida(player, salida) {
-  this.registry.set('score', this.score); // Guarda el score globalmente
-  this.scene.start("game2");
-}
+    this.registry.set('score', this.score); // Guarda el score globalmente
+    this.scene.start("game3");
+  }
 }

@@ -1,10 +1,12 @@
 import Game from "./scenes/Game.js";
+import Game2 from "./scenes/Game2.js";
+import Game3 from "./scenes/Game3.js";
 
 // Create a new Phaser config object
 const config = {
   type: Phaser.AUTO,
-  width: 720,
-  height: 720,
+  width: 960,
+  height: 960,
   scale: {
     mode: Phaser.Scale.FIT,
     autoCenter: Phaser.Scale.CENTER_BOTH,
@@ -20,14 +22,14 @@ const config = {
   physics: {
     default: "arcade",
     arcade: {
-      gravity: { y: 200 },
-      debug: true,
+      gravity: { y: 0 },
+      debug: false,
     },
   },
   // List of scenes to load
   // Only the first scene will be shown
   // Remember to import the scene before adding it to the list
-  scene: [Game],
+  scene: [Game, Game2, Game3],
 };
 
 // Create a new Phaser game instance
